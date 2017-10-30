@@ -70,10 +70,7 @@ def testgen(path='.'):
                 # Then we read answer until === separator
                 # if we meet some odd separators, raise the exception and ignore those lines
                 line_id += 1
-                line = line[:-1]
                 line3 = line[:3]
-
-                print(line, line3, content)
 
                 if content == 'data':
                     # Read Data
@@ -133,13 +130,12 @@ if __name__ == "__main__":
     ARGS = parse_args()
     PATH = os.path.join('.', os.pardir, ARGS.PROBLEMNAME)
 
-    print(PATH)
-    testgen(PATH)
-
     # Raise an exception if the path doens't exist
     try:
         if not os.path.exists(PATH):
             raise FileNotFoundError
+
+        testgen(PATH)
 
     except FileNotFoundError:
         print('Directory Not Found')
