@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- $Id$ -->
+<problem
+	package = "ru.fipi.math.2009.demo"
+	id = "if_А"
+	type = "select-one">
+	<statement language="ru_RU">
+		<title>Принадлежность области - треугольник; Area - triangle</title>
+		<description>
+
+<p>По данным x и y координатам точки напечатайте - принадлежит точка к указанной области (включая границы) или нет.</p>
+<p><img src="/tasks/func_A_fill.png"></img></p>
+<p><b>Входные данные</b></p>
+<p>Два числа с плавающей точкой через пробел - x и y координаты точки</p>
+<p><b>Выходные данные</b></p>
+<p>YES, если точка принадлежит области вместе с границей, NO - если не принадлежит</p>
+<p><b>Примеры</b></p>
+<table>
+<tr>
+<td><p align="left">Вход</p></td><td><p align="right">Выход</p></td></tr>
+<tr>
+	<td><p align="left"><pre>2.0 -1.5</pre></p>
+	</td><td><p align="right">YES</p>
+	</td>
+</tr>
+</table>
+
+		
+<p>Print YES if point (x, y) is in the area (with edges), NO otherwise.</p>
+<p><img src="/tasks/func_A_fill.png"></img></p>
+<p><b>Input</b></p>
+<p>floats x y</p>
+<p><b>Output</b></p>
+<p>YES, if point (x, y) is in the area, NO - otherwise</p>
+<p><b>Examples</b></p>
+<table>
+<tr>
+<td><p align="left">Input</p></td><td><p align="right">Output</p></td></tr>
+<tr>
+	<td><p align="left"><pre>2.0 -1.5</pre></p>
+	</td><td><p align="right">YES</p>
+	</td>
+</tr>
+</table>
+
+
+		</description>
+	</statement>
+	<statement language="ru_RU_1">
+		<title>Принадлежность области - треугольник</title>
+		<description>
+		
+<p>По данным x и y координатам точки напечатайте - принадлежит точка к указанной области (включая границы) или нет.</p>
+<p><img src="/tasks/func_A_fill.png"></img></p>
+<p><b>Входные данные</b></p>
+<p>Два числа с плавающей точкой через пробел - x и y координаты точки</p>
+<p><b>Выходные данные</b></p>
+<p>YES, если точка принадлежит области вместе с границей, NO - если не принадлежит</p>
+<p><b>Примеры</b></p>
+<table>
+<tr>
+<td><p align="left">Вход</p></td><td><p align="right">Выход</p></td></tr>
+<tr>
+	<td><p align="left"><pre>2.0 -1.5</pre></p>
+	</td><td><p align="right">YES</p>
+	</td>
+</tr>
+</table>
+
+
+		</description>
+	</statement>
+</problem>

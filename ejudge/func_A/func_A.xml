@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- $Id$ -->
+<problem
+	package = "ru.fipi.math.2009.demo"
+	id = "func_А"
+	type = "select-one">
+	<statement language="ru_RU">
+		<title>Функция принадлежности области - треугольник</title>
+		<description>
+
+		<p>
+Реализуйте функцию с координатами точки, которая возвращает <b>0</b>, если точка лежит <b>вне</b> указанной области, и любое другое значение, если точка принадлежит области (включая ее границы).</p>
+<p><tt>int <b>in_region</b>(float x, float y);</tt></p>
+<p>Функцию main реализовывать НЕ нужно. Проверку корректности аргументов не делать.</p>
+<p><img src="/tasks/func_A_fill.png"></img></p>
+
+
+		</description>
+	</statement>
+</problem>
+
