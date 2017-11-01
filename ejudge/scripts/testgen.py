@@ -1,22 +1,62 @@
 #!/usr/local/bin/python3
 import os
 from sys import argv
+import subprocess       # For executing .c files
 import argparse
 import logging
 
 from pprint import PrettyPrinter
 from prettytable import PrettyTable
 
-def touch(path=None, name=None, text=None, ext=None):
+# TODO  write args error handling in methods
+
+def touch(path=None, filename=None, text=None):
     # Create subdirectories from the path if don't exist
+
     if not os.path.exists(path):
         os.makedirs(path)
 
-    # Create filename
-    filename = os.path.join(path, '{:03d}'.format(name) + '.' + ext)
     with open(filename, 'w') as tempfile:
         os.utime(path, None)
         tempfile.writelines(text)
+
+def create_testpath(path='.', name='', ext=''):
+    return os.path.join(path, '{:03d}'.format(name) + ext)
+
+def compile_solution(path=None, ext=None):
+    compiler = {'.c':'gcc', '.cpp':'g++', '.py':'error'}               # Choose the compiler
+    subprocess.call([compiler[ext], '-o', path + '.out', path])
+    return path + '.out'
+
+def get_solution(problem, test):
+
+    """
+    Get the solution from the output of the problem with
+    """
+
+    # Create paths to the problem_solution.ext and
+    solution_ext = '.c' # For future improvements
+    solution_name = os.path.basename(problem) + '_solution' + solution_ext
+    logging.debug('Missing solution for {}'.format(test))
+
+    solution_path = os.path.join(problem, solution_name)
+    # TODO check if the solution exists
+    logging.debug('Found solution {} for {}'.format(solution_path, problem))
+
+    # Compiling the solution
+    solution_exec_path = compile_solution(solution_path, solution_ext)
+    logging.debug('Compiled solution {} for {}'.format(solution_exec_path, problem))
+
+    # Execute problem_solution.ext and get output
+    with open(test, 'rb') as test_file:
+        solution = subprocess.Popen([solution_exec_path],
+                                    stdin=subprocess.PIPE,  stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE, shell=True)
+        original_solution = solution.communicate(input=test_file.read())[0].decode()
+        logging.debug('Got solution "{}" for {}'.format(original_solution.replace('\n', r'\n'), problem))
+
+    os.remove(solution_exec_path)
+    return original_solution
 
 def testgen(path='.'):
     """
@@ -59,11 +99,13 @@ def testgen(path='.'):
         seps = {'mid':'---', 'end':'==='}       # separators
         data = list()                           # data list
         ans = list()                            # answer list
+
         with open(test_path, 'r') as test_file:
             dat_id = 0      # Number of .dat file name
             ans_id = 0      # Number of .ans file name
             line_id = 0     # Line number
             content = 'data'
+
             for line in test_file.readlines():
                 # if line begins with --- or === then it is separator
                 # First we read data until --- separator
@@ -82,13 +124,19 @@ def testgen(path='.'):
                         raise UserWarning
                     else: # found correct middle separator
                         dat_id += 1
-                        touch(path=testdir_path, name=dat_id, text=data, ext='dat')
+                        testname = create_testpath(path=testdir_path, name=dat_id, ext='.dat')
+                        touch(path=testdir_path, filename=testname, text=data)
                         data = []
                         content = 'answer'
 
                 elif content == 'answer':
                     # Read answer
                     if line3 not in seps.values():
+                        if line[0] == '?':  # Need to get answer from ideal solution
+                            test_path = create_testpath(path=testdir_path, name=dat_id, ext='.dat')
+                            ans = get_solution(problem=path, test=test_path)
+                            continue
+
                         ans.append(line)
                     # Wrong separator detected -> raise exception and ignore the line
                     elif line3 == seps['mid']:
@@ -96,7 +144,8 @@ def testgen(path='.'):
                         raise UserWarning
                     else: # found correct middle separator
                         ans_id += 1
-                        touch(path=testdir_path, name=ans_id, text=ans, ext='ans')
+                        ansname = create_testpath(path=testdir_path, name=ans_id, ext='.ans')
+                        touch(path=testdir_path, filename=ansname, text=ans)
                         ans = []
                         content = 'data'
 
@@ -117,9 +166,6 @@ if __name__ == "__main__":
         parser = argparse.ArgumentParser()
         parser.add_argument("PROBLEMNAME", type=str, nargs='?', default='.',
                             help="The name of the PROBLEM directory we want work to.")
-        parser.add_argument('-d', '--debug', action='store_true',
-                            help="Print auxillary debug information while the \
-                            program is running")
         return parser.parse_args()
 
     # Enable logging
@@ -128,16 +174,8 @@ if __name__ == "__main__":
 
     # Parse command-line arguments
     ARGS = parse_args()
+    #PATH = os.path.abspath(os.path.join('.', os.pardir, ARGS.PROBLEMNAME))
     PATH = os.path.join('.', os.pardir, ARGS.PROBLEMNAME)
+    # PATH = abspath(./../problem)
 
-    # Raise an exception if the path doens't exist
-    try:
-        if not os.path.exists(PATH):
-            raise FileNotFoundError
-
-        testgen(PATH)
-
-    except FileNotFoundError:
-        print('Directory Not Found')
-        logging.error('Directory Not Found')
-        exit()
+    testgen(PATH)
