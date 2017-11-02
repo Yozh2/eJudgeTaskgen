@@ -186,6 +186,10 @@ def testgen(path='.'):
         logging.error('test.txt/line{}: wrong separator {}'.format(line_id, line3))
 
 def clean(path='.', log='testgen.py.log'):
+    """
+    Perform the cleanup. Reset the situation to the state testgen.py was launched.
+    Delete "problem/tests" and "./__pycache__" subdirectories, remove packet's log file.
+    """
     rmtree(os.path.join(path, 'tests'), ignore_errors=True, onerror=None)
     rmtree('__pycache__', ignore_errors=True, onerror=None)
     os.remove(log)
