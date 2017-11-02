@@ -1,0 +1,8 @@
+************* Module scripts.testgen
+C:  1, 0: Missing module docstring (missing-docstring)
+R: 87, 0: Too many branches (15/12) (too-many-branches)
+R: 87, 0: Too many statements (55/50) (too-many-statements)
+
+------------------------------------------------------------------
+Your code has been rated at 9.73/10 (previous run: 9.29/10, +0.44)
+

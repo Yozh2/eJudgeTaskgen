@@ -4,12 +4,11 @@ from sys import argv
 import subprocess       # For executing .c files
 import argparse
 import logging
-
 from shutil import rmtree
-from pprint import PrettyPrinter
-from prettytable import PrettyTable
 
-# TODO  write args error handling in methods
+# TODO
+# 1. Write module dorctring
+# 2. Simplify or split testgen() function
 
 def touch(path=None, filename=None, text=None):
     """
@@ -63,27 +62,27 @@ def get_solution(problem, test):
     # Get solution filename, extension (same as the problem's one)
     solution_ext = '.c'
     solution_name = os.path.basename(problem) + '_solution' + solution_ext
-    logging.info('Missing solution for {}'.format(test))
-    logging.info('Solution_name {} for problem {}'.format(solution_name, problem))
+    logging.info('Missing solution for %s', test)
+    logging.info('Solution_name %s for problem %s', solution_name, problem)
 
     # Get solution path and check if it exists. Return None otherwise.
     solution_path = os.path.join(problem, solution_name)
     if not os.path.exists(solution_path):
-        logging.error('No solution found {} for {}'.format(solution_path, problem))
+        logging.error('No solution found %s for %s', solution_path, problem)
         return None
-    logging.debug('Found solution {} for {}'.format(solution_path, problem))
+    logging.debug('Found solution %s for %s', solution_path, problem)
 
     # Compile the solution
     solution_exec_path = compile_solution(solution_path)
-    logging.debug('Compiled solution {} for {}'.format(solution_exec_path, problem))
+    logging.debug('Compiled solution %s for %s', solution_exec_path, problem)
 
     # Execute problem_solution.ext and get output
     with open(test, 'rb') as test_file:
         solution = subprocess.Popen([solution_exec_path],
-                                    stdin=subprocess.PIPE,  stdout=subprocess.PIPE,
+                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE, shell=True)
         original_solution = solution.communicate(input=test_file.read())[0].decode()
-        logging.info('Got solution "{}" for {}'.format(original_solution.replace('\n', r'\n'), problem))
+        logging.info('Got solution "%s" for %s', original_solution.replace('\n', r'\n'), problem)
 
     # Remove temporary executable solution from the filesystem
     os.remove(solution_exec_path)
@@ -111,20 +110,20 @@ def testgen(path='.'):
     try:
         # Check if the Problem directory path given exists
         if not os.path.exists(path):
-            logging.error('Problem directory not found: {}'.format(path))
+            logging.error('Problem directory not found: %s', path)
             raise FileNotFoundError
 
         # Check if the test.txt file exists in the Problem directory
         test_path = os.path.join(path, 'test.txt')
         if not os.path.exists(test_path):
-            logging.error('problem/test.txt file not found: {}'.format(test_path))
+            logging.error('problem/test.txt file not found: %s', test_path)
             raise FileNotFoundError
 
         # Create problem/tests directory if it does not exist
         testdir_path = os.path.join(path, 'tests')
         if not os.path.exists(testdir_path):
             os.mkdir(testdir_path)
-            logging.debug('tests directory created: {}'.format(testdir_path))
+            logging.debug('tests directory created: %s', testdir_path)
 
         # Starting to parse the problem/test.txt file
         seps = {'mid':'---', 'end':'==='}       # separators
@@ -183,7 +182,7 @@ def testgen(path='.'):
         exit()
 
     except UserWarning:
-        logging.error('test.txt/line{}: wrong separator {}'.format(line_id, line3))
+        logging.error('test.txt/line%d: wrong separator %s', line_id, line3)
 
 def clean(path='.', log='testgen.py.log'):
     """
@@ -207,9 +206,9 @@ if __name__ == "__main__":
         return parser.parse_args()
 
     # Enable logging
-    log = u'{}.log'.format(argv[0])
+    LOG = u'{}.log'.format(argv[0])
     logging.basicConfig(format=u'%(filename)s[LINE:%(lineno)d]# %(levelname)-8s [%(asctime)s] \
-    %(message)s', level=logging.DEBUG, filename=log)
+    %(message)s', level=logging.DEBUG, filename=LOG)
 
     # Parse command-line arguments
     ARGS = parse_args()
@@ -221,4 +220,4 @@ if __name__ == "__main__":
         # Generate tests directory and parse test.txt file
         testgen(PATH)
     else:
-        clean(PATH, log)
+        clean(PATH, LOG)
