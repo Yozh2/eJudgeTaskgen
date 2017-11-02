@@ -5,46 +5,76 @@ import subprocess       # For executing .c files
 import argparse
 import logging
 
+from shutil import rmtree
 from pprint import PrettyPrinter
 from prettytable import PrettyTable
 
 # TODO  write args error handling in methods
 
 def touch(path=None, filename=None, text=None):
+    """
+    Creates file at [path] named [filename] with content [text].
+    If [path] doesn't exist, then creates all required subdirectories.
+    The file created has it's own creation time according to the UNIX system time.
+    """
+
     # Create subdirectories from the path if don't exist
-
     if not os.path.exists(path):
-        os.makedirs(path)
+        os.makedirs(name=path, exist_ok=True)
 
-    with open(filename, 'w') as tempfile:
-        os.utime(path, None)
-        tempfile.writelines(text)
+    # Create file with name [filename], set it's time and write content
+    try:
+        with open(filename, 'w') as tempfile:
+            os.utime(path, None)
+            tempfile.writelines(text)
 
-def create_testpath(path='.', name='', ext=''):
+    except NotImplementedError:
+        logging.error('os.utime: dir_fd and follow_symlinks may not be available on your platform.')
+    except TypeError:
+        logging.warning('tempfile.writelines(None): unable to write NoneType object.')
+
+def create_testpath(path='.', name=0, ext=''):
+    """
+    Creates the path for the test file [path]/[name][ext] from the [path] directory.
+    [path] - str - path of the directory with the test file.
+    [name] - int - test number will be written with leading zeros to contain three digits.
+    [ext]  - str - test file extension string in format '.ext' with leading dot.
+    """
     return os.path.join(path, '{:03d}'.format(name) + ext)
 
-def compile_solution(path=None, ext=None):
-    compiler = {'.c':'gcc', '.cpp':'g++', '.py':'error'}               # Choose the compiler
-    subprocess.call([compiler[ext], '-o', path + '.out', path])
-    return path + '.out'
+def compile_solution(path=None):
+    """
+    Chooses the proper compiler and compiles the file to create executable solution.
+    Supports compilers listed in the compiler dictionary with file extensions as keys.
+    The output executable will be [path].out
+    """
+
+    compiler = {'.c':'gcc', '.cpp':'g++'}
+    executable = path + '.out'
+    ext = os.path.splitext(path)[1] # get the file extension of the executable
+    subprocess.call([compiler[ext], '-o', executable, path])
+    return executable
 
 def get_solution(problem, test):
-
     """
-    Get the solution from the output of the problem with
+    Get the solution for [test] from the output for the [problem] via [problem]_solution.* file.
     """
 
-    # Create paths to the problem_solution.ext and
-    solution_ext = '.c' # For future improvements
+    # Get solution filename, extension (same as the problem's one)
+    solution_ext = '.c'
     solution_name = os.path.basename(problem) + '_solution' + solution_ext
-    logging.debug('Missing solution for {}'.format(test))
+    logging.info('Missing solution for {}'.format(test))
+    logging.info('Solution_name {} for problem {}'.format(solution_name, problem))
 
+    # Get solution path and check if it exists. Return None otherwise.
     solution_path = os.path.join(problem, solution_name)
-    # TODO check if the solution exists
+    if not os.path.exists(solution_path):
+        logging.error('No solution found {} for {}'.format(solution_path, problem))
+        return None
     logging.debug('Found solution {} for {}'.format(solution_path, problem))
 
-    # Compiling the solution
-    solution_exec_path = compile_solution(solution_path, solution_ext)
+    # Compile the solution
+    solution_exec_path = compile_solution(solution_path)
     logging.debug('Compiled solution {} for {}'.format(solution_exec_path, problem))
 
     # Execute problem_solution.ext and get output
@@ -53,8 +83,9 @@ def get_solution(problem, test):
                                     stdin=subprocess.PIPE,  stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE, shell=True)
         original_solution = solution.communicate(input=test_file.read())[0].decode()
-        logging.debug('Got solution "{}" for {}'.format(original_solution.replace('\n', r'\n'), problem))
+        logging.info('Got solution "{}" for {}'.format(original_solution.replace('\n', r'\n'), problem))
 
+    # Remove temporary executable solution from the filesystem
     os.remove(solution_exec_path)
     return original_solution
 
@@ -120,7 +151,6 @@ def testgen(path='.'):
                         data.append(line)
                     # Wrong separator detected -> raise exception and ignore the line
                     elif line3 == seps['end']:
-                        logging.warning('test.txt/line{}: wrong separator'.format(line_id, seps['end']))
                         raise UserWarning
                     else: # found correct middle separator
                         dat_id += 1
@@ -140,7 +170,6 @@ def testgen(path='.'):
                         ans.append(line)
                     # Wrong separator detected -> raise exception and ignore the line
                     elif line3 == seps['mid']:
-                        logging.warning('test.txt/line{}: wrong separator'.format(line_id, seps['mid']))
                         raise UserWarning
                     else: # found correct middle separator
                         ans_id += 1
@@ -154,9 +183,12 @@ def testgen(path='.'):
         exit()
 
     except UserWarning:
-        pass
+        logging.error('test.txt/line{}: wrong separator {}'.format(line_id, line3))
 
-
+def clean(path='.', log='testgen.py.log'):
+    rmtree(os.path.join(path, 'tests'), ignore_errors=True, onerror=None)
+    rmtree('__pycache__', ignore_errors=True, onerror=None)
+    os.remove(log)
 
 # ==================================================================================================
 if __name__ == "__main__":
@@ -164,13 +196,16 @@ if __name__ == "__main__":
     def parse_args():
         """ Parses arguments and returns args object to the main program"""
         parser = argparse.ArgumentParser()
-        parser.add_argument("PROBLEMNAME", type=str, nargs='?', default='.',
+        parser.add_argument("PROBLEMNAME", type=str,
                             help="The name of the PROBLEM directory we want work to.")
+        parser.add_argument('-c', "--clean", action='store_true',
+                            help="Reset the situation. Delete tests subdirectory, clean logs.")
         return parser.parse_args()
 
     # Enable logging
+    log = u'{}.log'.format(argv[0])
     logging.basicConfig(format=u'%(filename)s[LINE:%(lineno)d]# %(levelname)-8s [%(asctime)s] \
-    %(message)s', level=logging.DEBUG, filename=u'{}.log'.format(argv[0]))
+    %(message)s', level=logging.DEBUG, filename=log)
 
     # Parse command-line arguments
     ARGS = parse_args()
@@ -178,4 +213,8 @@ if __name__ == "__main__":
     PATH = os.path.join('.', os.pardir, ARGS.PROBLEMNAME)
     # PATH = abspath(./../problem)
 
-    testgen(PATH)
+    if not ARGS.clean:
+        # Generate tests directory and parse test.txt file
+        testgen(PATH)
+    else:
+        clean(PATH, log)
