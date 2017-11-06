@@ -1,20 +1,47 @@
 #!/usr/local/bin/python3
+
+"""
+The main function in this package. Generates test input and
+output data based on the tests.txt file given.
+
+[path] - path to the problem directory
+
+Opens the problem/test.txt given and parses it. The tests are
+written in the following format:
+    input1
+    ---
+    output1
+    ===
+    input2
+    ---
+    ?
+    ===
+with '---' line as a middle separator between input and output
+and '===' line as the end-of-test separator.
+
+Then creates problem/tests directory and generates tests in it
+in the following format:
+    001.dat, 001.ans, 002.dat, 002.ans
+
+if some output test data is '?' (like in test2 in the example
+above) then testgen looks for the problem_solution.c file as the
+ideal solution for the problem in the problem directory and then
+lauches it with test input to get the corresponding trustful ouput
+data to write to the .ans file.
+"""
+
 import os
 from sys import argv
 import subprocess       # For executing .c files
 import argparse
 import logging
 from shutil import rmtree
-
-# TODO
-# 1. Write module dorctring
-# 2. Simplify or split testgen() function
-
 def touch(path=None, filename=None, text=None):
     """
     Creates file at [path] named [filename] with content [text].
     If [path] doesn't exist, then creates all required subdirectories.
-    The file created has it's own creation time according to the UNIX system time.
+    The file created has it's own creation time according to the UNIX
+    system time.
     """
 
     # Create subdirectories from the path if don't exist
@@ -41,23 +68,39 @@ def create_testpath(path='.', name=0, ext=''):
     """
     return os.path.join(path, '{:03d}'.format(name) + ext)
 
-def compile_solution(path=None):
+def compile_solution(dir_path=None, path=None, solution_name=None):
     """
     Chooses the proper compiler and compiles the file to create executable solution.
     Supports compilers listed in the compiler dictionary with file extensions as keys.
-    The output executable will be [path].out
+    The output executable will be [dir_path]/[path].out
+    Returns the path to the executable.
     """
 
     compiler = {'.c':'gcc', '.cpp':'g++'}
-    executable = path + '.out'
+    executable = os.path.join(dir_path, solution_name + '.out')
+
     ext = os.path.splitext(path)[1] # get the file extension of the executable
     subprocess.call([compiler[ext], '-o', executable, path])
     return executable
+
+def execute_solution(path=None, test=None):
+    '''Execute problem_solution.ext and get output'''
+    with open(test, 'rb') as test_file:
+        solution = subprocess.Popen([path],
+                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE, shell=True)
+        original_solution = solution.communicate(input=test_file.read())[0].decode()
+    return original_solution
 
 def get_solution(problem, test):
     """
     Get the solution for [test] from the output for the [problem] via [problem]_solution.* file.
     """
+
+    # Create tmp_testgen subdirectory if doesn't exist
+    tmp_path = os.path.join(problem, 'tmp_testgen')
+    if not os.path.exists(tmp_path):
+        os.makedirs(name=tmp_path, exist_ok=True)
 
     # Get solution filename, extension (same as the problem's one)
     solution_ext = '.c'
@@ -73,38 +116,44 @@ def get_solution(problem, test):
     logging.debug('Found solution %s for %s', solution_path, problem)
 
     # Compile the solution
-    solution_exec_path = compile_solution(solution_path)
+    solution_exec_path = compile_solution(dir_path=tmp_path, path=solution_path,
+                                          solution_name=solution_name)
     logging.debug('Compiled solution %s for %s', solution_exec_path, problem)
 
-    # Execute problem_solution.ext and get output
-    with open(test, 'rb') as test_file:
-        solution = subprocess.Popen([solution_exec_path],
-                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE, shell=True)
-        original_solution = solution.communicate(input=test_file.read())[0].decode()
-        logging.info('Got solution "%s" for %s', original_solution.replace('\n', r'\n'), problem)
+    original_solution = execute_solution(path=solution_exec_path, test=test)
+    logging.info('Got solution "%s" for %s', original_solution.replace('\n', r'\n'), problem)
 
-    # Remove temporary executable solution from the filesystem
-    os.remove(solution_exec_path)
     return original_solution
 
 def testgen(path='.'):
     """
-    Opens the func_A/test.txt given and parses it. The tests are written in the following format:
+    The main function in this package. Generates test input and
+    output data based on the tests.txt file given.
 
+    [path] - path to the problem directory
+
+    Opens the problem/test.txt given and parses it. The tests are
+    written in the following format:
         input1
         ---
         output1
         ===
         input2
         ---
-        output2
+        ?
         ===
+    with '---' line as a middle separator between input and output
+    and '===' line as the end-of-test separator.
 
-    Then creates func_A/tests directory and generates tests in it in the following format:
+    Then creates problem/tests directory and generates tests in it
+    in the following format:
         001.dat, 001.ans, 002.dat, 002.ans
 
-    path - path to the fucn_A directory
+    if some output test data is '?' (like in test2 in the example
+    above) then testgen looks for the problem_solution.c file as the
+    ideal solution for the problem in the problem directory and then
+    lauches it with test input to get the corresponding trustful ouput
+    data to write to the .ans file.
     """
 
     try:
@@ -190,6 +239,7 @@ def clean(path='.', log='testgen.py.log'):
     Delete "problem/tests" and "./__pycache__" subdirectories, remove packet's log file.
     """
     rmtree(os.path.join(path, 'tests'), ignore_errors=True, onerror=None)
+    rmtree(os.path.join(path, 'tmp_testgen'), ignore_errors=True, onerror=None)
     rmtree('__pycache__', ignore_errors=True, onerror=None)
     os.remove(log)
 
@@ -212,8 +262,8 @@ if __name__ == "__main__":
 
     # Parse command-line arguments
     ARGS = parse_args()
-    #PATH = os.path.abspath(os.path.join('.', os.pardir, ARGS.PROBLEMNAME))
-    PATH = os.path.join('.', os.pardir, ARGS.PROBLEMNAME)
+    PATH = os.path.abspath(os.path.join('.', os.pardir, ARGS.PROBLEMNAME))
+    #PATH = os.path.join('.', os.pardir, ARGS.PROBLEMNAME)
     # PATH = abspath(./../problem)
 
     if not ARGS.clean:
