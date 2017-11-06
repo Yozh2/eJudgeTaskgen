@@ -211,10 +211,12 @@ def testgen(path='.'):
                 elif content == 'answer':
                     # Read answer
                     if line3 not in seps.values():
-                        if line[0] == '?':  # Need to get answer from oroginal solution
+                        if line[0] == '?':  # Need to get answer from original solution
                             test_path = create_testpath(path=testdir_path, name=dat_id, ext='.dat')
                             ans = get_solution(problem=path, test=test_path)
                             continue
+
+                        # TODO Игнорировать все строки до следующего правильного сепаратора.
 
                         ans.append(line)
                     # Wrong separator detected -> raise exception and ignore the line
@@ -233,6 +235,8 @@ def testgen(path='.'):
 
     except UserWarning:
         logging.error('test.txt/line%d: wrong separator %s', line_id, line3)
+        print('ERROR: test.txt/line{}: wrong separator {}'.format(line_id, line3))
+        exit()
 
 def clean(path='.', log='testgen.py.log'):
     """
