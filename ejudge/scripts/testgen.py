@@ -35,7 +35,8 @@ from sys import argv
 import subprocess       # For executing .c files
 import argparse
 import logging
-from shutil import rmtree
+from shutil import rmtree    # for testgen.py -c cleanup
+
 def touch(path=None, filename=None, text=None):
     """
     Creates file at [path] named [filename] with content [text].
@@ -96,6 +97,7 @@ def get_solution(problem, test):
     """
     Get the solution for [test] from the output for the [problem] via [problem]_solution.* file.
     """
+    logging.info('Missing solution for %s', test)
 
     # Create tmp_testgen subdirectory if doesn't exist
     tmp_path = os.path.join(problem, 'tmp_testgen')
@@ -105,7 +107,6 @@ def get_solution(problem, test):
     # Get solution filename, extension (same as the problem's one)
     solution_ext = '.c'
     solution_name = os.path.basename(problem) + '_solution' + solution_ext
-    logging.info('Missing solution for %s', test)
     logging.info('Solution_name %s for problem %s', solution_name, problem)
 
     # Get solution path and check if it exists. Return None otherwise.
@@ -180,10 +181,10 @@ def testgen(path='.'):
         ans = list()                            # answer list
 
         with open(test_path, 'r') as test_file:
-            dat_id = 0      # Number of .dat file name
-            ans_id = 0      # Number of .ans file name
-            line_id = 0     # Line number
-            content = 'data'
+            dat_id = 0          # Number of .dat file name
+            ans_id = 0          # Number of .ans file name
+            line_id = 0         # Line number for debug messages
+            content = 'data'    # mode for testgen cycle
 
             for line in test_file.readlines():
                 # if line begins with --- or === then it is separator
@@ -195,12 +196,12 @@ def testgen(path='.'):
 
                 if content == 'data':
                     # Read Data
-                    if line3 not in seps.values():
+                    if line3 not in seps.values():  # Still input data
                         data.append(line)
                     # Wrong separator detected -> raise exception and ignore the line
                     elif line3 == seps['end']:
                         raise UserWarning
-                    else: # found correct middle separator
+                    else: # found correct middle separator -> store data and switch content
                         dat_id += 1
                         testname = create_testpath(path=testdir_path, name=dat_id, ext='.dat')
                         touch(path=testdir_path, filename=testname, text=data)
@@ -210,7 +211,7 @@ def testgen(path='.'):
                 elif content == 'answer':
                     # Read answer
                     if line3 not in seps.values():
-                        if line[0] == '?':  # Need to get answer from ideal solution
+                        if line[0] == '?':  # Need to get answer from oroginal solution
                             test_path = create_testpath(path=testdir_path, name=dat_id, ext='.dat')
                             ans = get_solution(problem=path, test=test_path)
                             continue
